@@ -1,0 +1,32 @@
+# 忽略编译输出目录
+build/
+bin/
+
+# 忽略生成的可执行文件和库文件
+*.o
+*.so
+*.out
+*.exe
+*.dll
+*.dylib
+
+# 忽略CMake生成的文件
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+Makefile
+
+# IDE相关文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 依赖目录
+/vendor/
