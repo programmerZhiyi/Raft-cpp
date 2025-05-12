@@ -12,10 +12,13 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 # 设置项目编译头文件搜索路径 -I
 include_directories(${PROJECT_SOURCE_DIR}/lib/include)
-include_directories(${PROJECT_SOURCE_DIR}/kv/include)
+include_directories(${PROJECT_SOURCE_DIR}/src/skipList/include)
 # 设置项目库文件搜索路径 -L
 link_directories(${PROJECT_SOURCE_DIR}/lib)
 
 set(LIBS mprpc protobuf pthread zookeeper_mt muduo_net muduo_base glog)
 
-add_subdirectory(kv)
+add_subdirectory(src)
+
+# add_executable(test test.cc)
+# target_link_libraries(test boost_serialization)
