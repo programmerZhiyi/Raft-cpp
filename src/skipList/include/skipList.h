@@ -67,8 +67,8 @@ private:
     int _max_level; // 最大层数
     int _skip_list_level; // 当前层数
     Node<K, V> *_header; // 头节点
-    std::ofstream _file_writer; // 文件写入流
-    std::ifstream _file_reader; // 文件读取流
+    // std::ofstream _file_writer; // 文件写入流
+    // std::ifstream _file_reader; // 文件读取流
     int _element_count; // 元素个数
     std::mutex _mtx; // 互斥锁
 };

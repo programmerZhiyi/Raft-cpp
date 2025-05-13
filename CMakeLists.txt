@@ -13,12 +13,12 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 # 设置项目编译头文件搜索路径 -I
 include_directories(${PROJECT_SOURCE_DIR}/lib/include)
 include_directories(${PROJECT_SOURCE_DIR}/src/skipList/include)
+include_directories(${PROJECT_SOURCE_DIR}/src/raftCore/include)
+include_directories(${PROJECT_SOURCE_DIR}/src/Rpc/include)
+include_directories(${PROJECT_SOURCE_DIR}/src/common/include)
 # 设置项目库文件搜索路径 -L
 link_directories(${PROJECT_SOURCE_DIR}/lib)
 
-set(LIBS mprpc protobuf pthread zookeeper_mt muduo_net muduo_base glog)
+set(LIBS mprpc protobuf pthread zookeeper_mt muduo_net muduo_base glog boost_serialization)
 
 add_subdirectory(src)
-
-# add_executable(test test.cc)
-# target_link_libraries(test boost_serialization)
