@@ -20,7 +20,7 @@ public:
     void Save(std::string raftstate, std::string snapshot);
     std::string ReadSnapshot();
     void SaveRaftState(const std::string &data);
-    long long RaftStatesize();
+    long long RaftStateSize();
     std::string ReadRaftState();
     explicit Persister(int me);
     ~Persister();
