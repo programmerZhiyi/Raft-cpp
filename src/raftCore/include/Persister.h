@@ -9,7 +9,7 @@ private:
     std::string m_raftState;
     std::string m_snapshot;
     const std::string m_raftStateFileName; // raftState文件名
-    const std::string m_snapshotFileNaem; // snapshot文件名
+    const std::string m_snapshotFileName; // snapshot文件名
     std::ofstream m_raftStateOutStream; // raftState文件输出流
     std::ofstream m_snapshotOutStream; // snapshot文件输出流
     long long m_raftStateSize; // raftState文件大小
