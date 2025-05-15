@@ -1,2 +1,4 @@
 add_subdirectory(raftCore)
-add_subdirectory(Rpc)
+add_subdirectory(common)
+add_subdirectory(rpcService)
+add_subdirectory(rpcSrc)
