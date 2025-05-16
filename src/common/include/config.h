@@ -107,3 +107,28 @@ std::chrono::milliseconds getRandomizedElectionTimeout(); // 获取随机的选�
 
 const int minRandomizedElectionTime = 300 * debugMul;  // ms
 const int maxRandomizedElectionTime = 500 * debugMul;  // ms
+
+class Op {
+public:
+    std::string Operation;  // "Get" "Put" "Append"
+    std::string Key;
+    std::string Value;
+    std::string ClientId;  //客户端号码
+    int RequestId;         //客户端号码请求的Request的序列号，为了保证线性一致性
+    std::string asString() const;
+
+    bool parseFromString(std::string str);
+
+    friend std::ostream& operator<<(std::ostream& os, const Op& obj);
+
+private:
+    friend class boost::serialization::access;
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int version) {
+        ar& Operation;
+        ar& Key;
+        ar& Value;
+        ar& ClientId;
+        ar& RequestId;
+    }
+};

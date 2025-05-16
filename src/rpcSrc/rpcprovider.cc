@@ -2,6 +2,8 @@
 #include "mprpcapplication.h"
 #include "rpcheader.pb.h"
 #include "mprpclogger.h"
+#include <netdb.h>
+#include <arpa/inet.h>
 
 /*
 service_name => service描述
@@ -35,10 +37,19 @@ void RpcProvider::NotifyService(google::protobuf::Service *service) {
 }
 
 // 启动rpc服务发布节点，开始提供rpc远程网络调用服务
-void RpcProvider::Run() {
-    // 读取配置文件rpcserver的信息
-    std::string ip = MprpcApplication::GetInstance().GetConfig().Load("rpcserverip");
-    uint16_t port = atoi(MprpcApplication::GetInstance().GetConfig().Load("rpcserverport").c_str());
+void RpcProvider::Run(int nodeIndex, short port) {
+    // 获取可用ip
+    char *ipC;
+    char hname[128];
+    struct hostent *hent;
+    gethostname(hname, sizeof(hname));
+    hent = gethostbyname(hname);
+    for (int i = 0; hent->h_addr_list[i]; ++i) {
+        ipC = inet_ntoa(*(struct in_addr *)hent->h_addr_list[i]); // 获取ip地址
+    }
+    std::string ip(ipC);
+
+
     muduo::net::InetAddress address(ip, port);
 
     // 创建TcpServer对象

@@ -14,7 +14,7 @@ KvServer::KvServer(int me, int maxraftstate, std::string nodeInforFileName, shor
     // clerk层面 kvserver开启rpc接受功能
     // 同时raft与raft节点之间也要开启rpc功能，因此有两个注册
     std::thread t([this, port]() -> void {
-        // provider是一个rpc网络服务对象。把UserService对象发布到rpc节点上
+        // provider是一个rpc网络服务对象。把Service对象发布到rpc节点上
         RpcProvider provider;
         provider.NotifyService(this);
         provider.NotifyService(this->m_raftNode.get());
