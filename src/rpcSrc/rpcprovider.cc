@@ -49,7 +49,6 @@ void RpcProvider::Run(int nodeIndex, short port) {
     }
     std::string ip(ipC);
 
-
     muduo::net::InetAddress address(ip, port);
 
     // 创建TcpServer对象
@@ -64,19 +63,16 @@ void RpcProvider::Run(int nodeIndex, short port) {
     // 把当前rpc节点上要发布的服务全部注册到zk上面，让rpc client可以从zk上发现服务
     ZkClient zkCli;
     zkCli.Start();
-    // service_name为永久性节点   method_name为临时性节点
-    for (auto &sp : m_serviceMap) {
-        // /service_name
-        std::string service_path = "/" + sp.first;
-        zkCli.Create(service_path.c_str(), nullptr, 0);
-        for (auto &mp : sp.second.m_methodMap) {
-            // /service_name/method_name
-            std::string method_path = service_path + "/" + mp.first;
-            char method_path_data[128] = {0};
-            sprintf(method_path_data, "%s:%d", ip.c_str(), port);
-            // ZOO_EPHEMERAL表示znode是一个临时节点
-            zkCli.Create(method_path.c_str(), method_path_data, sizeof(method_path_data), ZOO_EPHEMERAL);
-        }
+    std::string node = "/Raft/node" + std::to_string(nodeIndex);
+    // 创建节点
+    char node_data[128] = {0};
+    sprintf(node_data, "%s:%d", ip.c_str(), port);
+    if (zkCli.Exists(node.c_str())) {
+        // 节点已经存在，设置数据
+        zkCli.SetData(node.c_str(), node_data, sizeof(node_data));
+    } else {
+        // 节点不存在，创建节点
+        zkCli.Create(node.c_str(), node_data, sizeof(node_data), ZOO_EPHEMERAL);
     }
 
     // rpc服务端准备启动，打印信息
@@ -183,5 +179,4 @@ void RpcProvider::SendRpcResponse(const muduo::net::TcpConnectionPtr &conn, goog
     } else {
         std::cout << "serialize response error!" << std::endl;
     }
-    conn->shutdown(); // 模拟http的短连接服务，由rpcprovider端主动断开连接
 }

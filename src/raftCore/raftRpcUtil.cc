@@ -22,7 +22,7 @@ bool RaftRpcUtil::InstallSnapshot(raftRpcSpace::InstallSnapshotArguments *reques
 }
 
 RaftRpcUtil::RaftRpcUtil(std::string ip, short port) {
-    stub_ = new raftRpcSpace::raftRpc_Stub(new MprpcChannel());
+    stub_ = new raftRpcSpace::raftRpc_Stub(new MprpcChannel(ip, port));
 }
 
 RaftRpcUtil::~RaftRpcUtil() {

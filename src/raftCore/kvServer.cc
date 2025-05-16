@@ -2,6 +2,8 @@
 #include <thread>
 #include "rpcprovider.h"
 
+std::mutex g_data_mutex; // 从zk获取数据时加锁
+
 KvServer::KvServer(int me, int maxraftstate, std::string nodeInforFileName, short port) {
 
     std::shared_ptr<Persister> persister = std::make_shared<Persister>(me);
@@ -13,7 +15,7 @@ KvServer::KvServer(int me, int maxraftstate, std::string nodeInforFileName, shor
     m_raftNode = std::make_shared<Raft>();
     // clerk层面 kvserver开启rpc接受功能
     // 同时raft与raft节点之间也要开启rpc功能，因此有两个注册
-    std::thread t([this, port]() -> void {
+    std::thread t1([this, port]() -> void {
         // provider是一个rpc网络服务对象。把Service对象发布到rpc节点上
         RpcProvider provider;
         provider.NotifyService(this);
@@ -21,7 +23,7 @@ KvServer::KvServer(int me, int maxraftstate, std::string nodeInforFileName, shor
         // 启动一个rpc服务发布节点   Run以后，进程进入阻塞状态，等待远程的rpc调用请求
         provider.Run(m_me, port);
     });
-    t.detach();
+    t1.detach();
 
     ////开启rpc远程调用能力，需要注意必须要保证所有节点都开启rpc接受功能之后才能开启rpc远程调用能力
     ////这里使用睡眠来保证
@@ -29,25 +31,29 @@ KvServer::KvServer(int me, int maxraftstate, std::string nodeInforFileName, shor
     sleep(6);
     std::cout << "raftServer node:" << m_me << " wake up!!!! start to connect other raftnode" << std::endl;
     //获取所有raft节点ip、port ，并进行连接  ,要排除自己
-    MprpcConfig config;
-    config.LoadConfigFile(nodeInforFileName.c_str());
-    std::vector<std::pair<std::string, short> > ipPortVt;
-    for (int i = 0; i < INT_MAX - 1; ++i) {
-        std::string node = "node" + std::to_string(i);
 
-        std::string nodeIp = config.Load(node + "ip");
-        std::string nodePortStr = config.Load(node + "port");
-        if (nodeIp.empty()) {
-        break;
+    std::vector<std::pair<std::string, short> > ipPortVt;
+    ZkClient zkCli;
+    zkCli.Start();
+    for (int i = 0; i < INT_MAX - 1; ++i) {
+        std::string node = "/Raft/node" + std::to_string(i);
+        if (!zkCli.Exists(node.c_str())) {
+            break;
         }
-        ipPortVt.emplace_back(nodeIp, atoi(nodePortStr.c_str()));  //沒有atos方法，可以考慮自己实现
+        std::unique_lock<std::mutex> lock(g_data_mutex);
+        std::string nodeInfor = zkCli.GetData(node.c_str());
+        lock.unlock();
+        int idx = nodeInfor.find(":");
+        std::string nodeIp = nodeInfor.substr(0, idx);
+        std::string nodePortStr = nodeInfor.substr(idx + 1);
+        ipPortVt.emplace_back(nodeIp, atoi(nodePortStr.c_str()));
     }
-    std::vector<std::shared_ptr<RaftRpcUtil> > servers;
+    std::vector<std::shared_ptr<RaftRpcUtil>> servers;
     //进行连接
     for (int i = 0; i < ipPortVt.size(); ++i) {
         if (i == m_me) {
-        servers.push_back(nullptr);
-        continue;
+            servers.push_back(nullptr);
+            continue;
         }
         std::string otherNodeIp = ipPortVt[i].first;
         short otherNodePort = ipPortVt[i].second;
@@ -59,21 +65,15 @@ KvServer::KvServer(int me, int maxraftstate, std::string nodeInforFileName, shor
     sleep(ipPortVt.size() - me);  //等待所有节点相互连接成功，再启动raft
     m_raftNode->init(servers, m_me, persister, applyChan);
     // kv的server直接与raft通信，但kv不直接与raft通信，所以需要把ApplyMsg的chan传递下去用于通信，两者的persist也是共用的
-
-    //////////////////////////////////
-
-    // You may need initialization code here.
-    // m_kvDB; //kvdb初始化
-    m_skipList;
-    waitApplyCh;
-    m_lastRequestId;
-    m_lastSnapShotRaftLogIndex = 0;  // todo:感覺這個函數沒什麼用，不如直接調用raft節點中的snapshot值？？？
+    
+    //kvdb初始化
+    m_lastSnapShotRaftLogIndex = 0;
     auto snapshot = persister->ReadSnapshot();
     if (!snapshot.empty()) {
         ReadSnapShotToInstall(snapshot);
     }
     std::thread t2(&KvServer::ReadRaftApplyCommandLoop, this);  //马上向其他节点宣告自己就是leader
-    t2.join();  //由於ReadRaftApplyCommandLoop一直不會結束，达到一直卡在这的目的
+    t2.join();  //由于ReadRaftApplyCommandLoop一直不会結束，达到一直卡在这的目的
 }
 
     void StartKVServer();

@@ -78,31 +78,6 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
         return;
     }
 
-    // 读取配置文件rpcserver的信息
-    // std::string ip = MprpcApplication::GetInstance().GetConfig().Load("rpcserverip");
-    // uint16_t port = atoi(MprpcApplication::GetInstance().GetConfig().Load("rpcserverport").c_str());
-    // rpc调用方想调用service_name的method_name服务，需要查询zk上该服务所在的host信息
-    ZkClient zkCli;
-    zkCli.Start();
-    std::string method_path = "/" + service_name + "/" + method_name;
-    std::unique_lock<std::mutex> lock(g_data_mutex); // 加锁，保证线程安全
-    std::string host_data = zkCli.GetData(method_path.c_str());
-    lock.unlock(); // 解锁
-    if (host_data == "") {
-        controller->SetFailed(method_path + " is not exist!");
-        LOG(ERROR) << method_path + " is not exist!";  // 记录错误日志
-        return;
-    }
-    int idx = host_data.find(":");
-    if (idx == -1) {
-        controller->SetFailed(method_path + " address is invalid!");
-        LOG(ERROR) << method_path + " address is invalid!";  // 记录错误日志
-        return;
-    }
-
-    std::string ip = host_data.substr(0, idx);
-    uint16_t port = atoi(host_data.substr(idx + 1, host_data.size()).c_str());
-
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port);
@@ -152,5 +127,40 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
     close(clientfd);
 }
 
-// MprpcChannel::MprpcChannel() {
-// }
+MprpcChannel::MprpcChannel(std::string ip, short port) : ip(ip), port(port) {
+    m_clientfd = -1;
+    // 连接远端rpc服务节点
+    std::string errMsg;
+    auto rt = newConnect(ip.c_str(), port, &errMsg);
+    int tryConut = 3;
+    while (!rt && tryConut > 0) {
+        std::cout << "connect to server error! ip:" << ip << " port:" << port << " errMsg:" << errMsg << std::endl;
+        rt = newConnect(ip.c_str(), port, &errMsg);
+        --tryConut;
+    }
+}
+
+bool MprpcChannel::newConnect(const char *ip, uint16_t port, std::string *errMsg) {
+    m_clientfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (-1 == m_clientfd) {
+        char errtxt[512] = {0};
+        sprintf(errtxt, "create socket error! errno:%d", errno);
+        *errMsg = errtxt;
+        return false;
+    }
+
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(port);
+    server_addr.sin_addr.s_addr = inet_addr(ip);
+
+    // 连接rpc服务端
+    if (-1 == connect(m_clientfd, (struct sockaddr*)&server_addr, sizeof(server_addr))) {
+        close(m_clientfd);
+        char errtxt[512] = {0};
+        sprintf(errtxt, "create socket error! errno:%d", errno);
+        *errMsg = errtxt;
+        return false;
+    }
+    return true;
+}
