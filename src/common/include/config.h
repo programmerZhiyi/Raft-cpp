@@ -7,6 +7,9 @@
 #include <mutex>
 #include <queue>
 #include <condition_variable>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/serialization/access.hpp>
 
 const bool DEBUG = true;
 
@@ -108,6 +111,8 @@ std::chrono::milliseconds getRandomizedElectionTimeout(); // 获取随机的选�
 const int minRandomizedElectionTime = 300 * debugMul;  // ms
 const int maxRandomizedElectionTime = 500 * debugMul;  // ms
 
+const int CONSENSUS_TIMEOUT = 500 * debugMul;  // ms
+
 class Op {
 public:
     std::string Operation;  // "Get" "Put" "Append"
@@ -132,3 +137,7 @@ private:
         ar& RequestId;
     }
 };
+
+const std::string OK = "OK";
+const std::string ErrNoKey = "ErrNoKey";
+const std::string ErrWrongLeader = "ErrWrongLeader";

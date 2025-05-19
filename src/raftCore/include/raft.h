@@ -98,7 +98,7 @@ public:
     void readPersist(std::string data);
     std::string persistData();
 
-    //void Start(Op command, int *newLogIndex, int *newLogTerm, bool *isLeader);
+    void Start(Op command, int *newLogIndex, int *newLogTerm, bool *isLeader);
     void Snapshot(int index, std::string snapshot);
 
     void AppendEntries(google::protobuf::RpcController *controller, const raftRpcSpace::AppendEntriesArguments *request, raftRpcSpace::AppendEntriesResults *response, ::google::protobuf::Closure *done) override;
