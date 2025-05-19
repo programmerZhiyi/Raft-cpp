@@ -4,7 +4,7 @@
 
 std::mutex g_data_mutex; // 从zk获取数据时加锁
 
-KvServer::KvServer(int me, int maxraftstate, std::string nodeInforFileName, short port) {
+KvServer::KvServer(int me, int maxraftstate, short port) : m_skipList(6) {
 
     std::shared_ptr<Persister> persister = std::make_shared<Persister>(me);
     m_me = me;
@@ -73,7 +73,7 @@ KvServer::KvServer(int me, int maxraftstate, std::string nodeInforFileName, shor
         ReadSnapShotToInstall(snapshot);
     }
     std::thread t2(&KvServer::ReadRaftApplyCommandLoop, this);  //马上向其他节点宣告自己就是leader
-    t2.join();  //由于ReadRaftApplyCommandLoop一直不会結束，达到一直卡在这的目的
+    t2.join();  //由于ReadRaftApplyCommandLoop一直不会结束，达到一直卡在这的目的
 }
 
 // void KvServer::StartKVServer() {

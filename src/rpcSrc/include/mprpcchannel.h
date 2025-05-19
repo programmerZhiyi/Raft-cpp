@@ -14,7 +14,7 @@ public:
                     const google::protobuf::Message *request,
                     google::protobuf::Message *response,
                     google::protobuf::Closure *done);
-    MprpcChannel(std::string ip, short port);
+    MprpcChannel(std::string ip, short port, bool connectNow);
 private:
     std::string ip; // 远端rpc服务节点的ip
     short port; // 远端rpc服务节点的端口

@@ -125,7 +125,10 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
     close(m_clientfd);
 }
 
-MprpcChannel::MprpcChannel(std::string ip, short port) : ip(ip), port(port) {
+MprpcChannel::MprpcChannel(std::string ip, short port, bool connectNow) : ip(ip), port(port) {
+    if (!connectNow) {
+        return;
+    }
     m_clientfd = -1;
     // 连接远端rpc服务节点
     std::string errMsg;
