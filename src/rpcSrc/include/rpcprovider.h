@@ -21,6 +21,7 @@ public:
 private:
     // 组合Eventloop
     muduo::net::EventLoop m_eventLoop;
+    std::shared_ptr<muduo::net::TcpServer> server;
 
     // service服务类型信息
     struct ServiceInfo {

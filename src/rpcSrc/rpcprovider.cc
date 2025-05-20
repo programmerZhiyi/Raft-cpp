@@ -1,5 +1,4 @@
 #include "rpcprovider.h"
-#include "mprpcapplication.h"
 #include "rpcheader.pb.h"
 #include "mprpclogger.h"
 #include <netdb.h>
@@ -52,18 +51,18 @@ void RpcProvider::Run(int nodeIndex, short port) {
     muduo::net::InetAddress address(ip, port);
 
     // 创建TcpServer对象
-    muduo::net::TcpServer server(&m_eventLoop, address, "RpcProvider");
+    server = std::make_shared<muduo::net::TcpServer>(&m_eventLoop, address, "RpcProvider");
     // 绑定连接回调和消息读写回调方法   分离了网络代码和业务代码
-    server.setConnectionCallback(std::bind(&RpcProvider::OnConnection, this, std::placeholders::_1));
-    server.setMessageCallback(std::bind(&RpcProvider::OnMessage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    server->setConnectionCallback(std::bind(&RpcProvider::OnConnection, this, std::placeholders::_1));
+    server->setMessageCallback(std::bind(&RpcProvider::OnMessage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
     // 设置muduo库的线程数量
-    server.setThreadNum(4);
+    server->setThreadNum(4);
 
     // 把当前rpc节点上要发布的服务全部注册到zk上面，让rpc client可以从zk上发现服务
     ZkClient zkCli;
     zkCli.Start();
-    std::string node = "/Raft/node" + std::to_string(nodeIndex);
+    std::string node = "/Raftnode" + std::to_string(nodeIndex);
     // 创建节点
     char node_data[128] = {0};
     sprintf(node_data, "%s:%d", ip.c_str(), port);
@@ -79,7 +78,7 @@ void RpcProvider::Run(int nodeIndex, short port) {
     std::cout << "RpcProvider start service at ip:" << ip << " port:" << port << std::endl;
 
     // 启动网络服务
-    server.start();
+    server->start();
     m_eventLoop.loop();
 }
 
@@ -180,3 +179,4 @@ void RpcProvider::SendRpcResponse(const muduo::net::TcpConnectionPtr &conn, goog
         std::cout << "serialize response error!" << std::endl;
     }
 }
+

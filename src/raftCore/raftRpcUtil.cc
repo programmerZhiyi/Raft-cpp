@@ -1,7 +1,6 @@
 #include "raftRpcUtil.h"
-
+#include "mprpcchannel.h"
 #include "mprpccontroller.h"
-#include "mprpcapplication.h"
 
 bool RaftRpcUtil::AppendEntries(raftRpcSpace::AppendEntriesArguments *request, raftRpcSpace::AppendEntriesResults *response) {
     MprpcController controller;

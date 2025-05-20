@@ -4,7 +4,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <error.h>
-#include "mprpcapplication.h"
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <unistd.h>
@@ -67,22 +66,22 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
 
     // 组织待发送的rpc请求的字符串
     std::string send_rpc_str;
-    // send_rpc_str.insert(0, std::string((char*)&header_size, 4)); // 前4个字节是header_size
-    // send_rpc_str += rpc_header_str; // header
-    // send_rpc_str += args_str; // args
+    send_rpc_str.insert(0, std::string((char*)&header_size, 4)); // 前4个字节是header_size
+    send_rpc_str += rpc_header_str; // header
+    
 
     
     // 创建一个StringOutputStream用于写入send_rpc_str
-    google::protobuf::io::StringOutputStream string_output(&send_rpc_str);
-    google::protobuf::io::CodedOutputStream coded_output(&string_output);
+    // google::protobuf::io::StringOutputStream string_output(&send_rpc_str);
+    // google::protobuf::io::CodedOutputStream coded_output(&string_output);
 
-    // 先写入header的长度（变长编码）
-    coded_output.WriteVarint32(static_cast<uint32_t>(rpc_header_str.size()));
+    // // 先写入header的长度（变长编码）
+    // coded_output.WriteVarint32(static_cast<uint32_t>(rpc_header_str.size()));
 
-    // 不需要手动写入header_size，因为上面的WriteVarint32已经包含了header的长度信息
-    // 然后写入rpc_header本身
-    coded_output.WriteString(rpc_header_str);
-    
+    // // 不需要手动写入header_size，因为上面的WriteVarint32已经包含了header的长度信息
+    // // 然后写入rpc_header本身
+    // coded_output.WriteString(rpc_header_str);
+    send_rpc_str += args_str; // args
 
     // 发送rpc请求
     //失败会重试连接再发送，重试连接失败会直接return
@@ -95,8 +94,8 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
         std::string errMsg;
         bool rt = newConnect(ip.c_str(), port, &errMsg);
         if (!rt) {
-        controller->SetFailed(errMsg);
-        return;
+            controller->SetFailed(errMsg);
+            return;
         }
     }
 
@@ -142,10 +141,12 @@ MprpcChannel::MprpcChannel(std::string ip, short port, bool connectNow) : ip(ip)
 }
 
 bool MprpcChannel::newConnect(const char *ip, uint16_t port, std::string *errMsg) {
+    //int clientfd = socket(AF_INET, SOCK_STREAM, 0);
     m_clientfd = socket(AF_INET, SOCK_STREAM, 0);
     if (-1 == m_clientfd) {
         char errtxt[512] = {0};
         sprintf(errtxt, "create socket error! errno:%d", errno);
+        //m_clientfd = -1;
         *errMsg = errtxt;
         return false;
     }
@@ -154,12 +155,13 @@ bool MprpcChannel::newConnect(const char *ip, uint16_t port, std::string *errMsg
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port);
     server_addr.sin_addr.s_addr = inet_addr(ip);
-
+    printf("[DEBUG] Connecting to %s:%d\n", ip, port);
     // 连接rpc服务端
     if (-1 == connect(m_clientfd, (struct sockaddr*)&server_addr, sizeof(server_addr))) {
         close(m_clientfd);
         char errtxt[512] = {0};
-        sprintf(errtxt, "create socket error! errno:%d", errno);
+        sprintf(errtxt, "connect error! errno:%d", errno);
+        m_clientfd = -1;
         *errMsg = errtxt;
         return false;
     }

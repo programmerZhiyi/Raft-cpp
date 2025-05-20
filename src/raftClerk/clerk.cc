@@ -21,15 +21,22 @@ void Clerk::PutAppend(std::string key, std::string value, std::string op) {
         args.set_requestid(requestId);
         raftKVRpcSpace::PutAppendReply reply;
         bool ok = m_servers[server]->PutAppend(&args, &reply);
+        // if (ok) {
+        //     std::cout << "【Clerk::PutAppend】PutAppend成功" << std::endl;
+        //     return;
+        // }
+        // return;
         if (!ok || reply.err() == ErrWrongLeader) {
             DPrintf("【Clerk::PutAppend】原以为的leader：{%d}请求失败，向新leader{%d}重试  ，操作：{%s}", server, server + 1, op.c_str());
             if (!ok) {
                 DPrintf("重试原因 ，rpc失败 ，");
+                //break;
             }
             if (reply.err() == ErrWrongLeader) {
                 DPrintf("重试原因：非leader");
+                server = (server + 1) % m_servers.size();  // try the next server
             }
-            server = (server + 1) % m_servers.size();  // try the next server
+            //server = (server + 1) % m_servers.size();  // try the next server
             continue;
         }
         if (reply.err() == OK) {
@@ -39,13 +46,13 @@ void Clerk::PutAppend(std::string key, std::string value, std::string op) {
     }
 }
 
-void Clerk::Init(std::string configFileName) {
+void Clerk::Init() {
     //获取所有raft节点ip、port ，并进行连接
     std::vector<std::pair<std::string, short> > ipPortVt;
     ZkClient zkCli;
     zkCli.Start();
     for (int i = 0; i < INT_MAX - 1; ++i) {
-        std::string node = "/Raft/node" + std::to_string(i);
+        std::string node = "/Raftnode" + std::to_string(i);
         if (!zkCli.Exists(node.c_str())) {
             break;
         }
@@ -65,6 +72,7 @@ void Clerk::Init(std::string configFileName) {
         m_servers.push_back(std::shared_ptr<raftServerRpcUtil>(rpc));
     }
 }
+
 std::string Clerk::Get(std::string key) {
     m_requestId++;
     auto requestId = m_requestId;

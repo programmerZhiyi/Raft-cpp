@@ -141,3 +141,6 @@ private:
 const std::string OK = "OK";
 const std::string ErrNoKey = "ErrNoKey";
 const std::string ErrWrongLeader = "ErrWrongLeader";
+
+const int FIBER_THREAD_NUM = 1;              // 协程库中线程池大小
+const bool FIBER_USE_CALLER_THREAD = false;  // 是否使用caller_thread执行调度任务

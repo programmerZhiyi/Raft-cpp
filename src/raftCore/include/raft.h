@@ -10,6 +10,7 @@
 #include <boost/serialization/string.hpp>           // 用于序列化 std::string
 #include <unordered_map>
 #include <boost/serialization/unordered_map.hpp> 
+#include "monsoon.h"
 
 constexpr int Disconnected = 0;
 constexpr int AppNormal = 1;
@@ -41,7 +42,7 @@ private:
     int m_lastSnapshotIncludeIndex;
     int m_lastSnapshotIncludeTerm;
     // 协程
-    //std::unique_ptr<monsoon::IOManager> m_ioManager = nullptr;
+    std::unique_ptr<monsoon::IOManager> m_ioManager = nullptr;
 
     class BoostPersistRaftNode {
     public:

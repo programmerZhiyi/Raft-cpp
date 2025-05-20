@@ -559,11 +559,11 @@ int Raft::getSlicesIndexFromLogIndex(int logIndex) {
 bool Raft::sendRequestVote(int server, std::shared_ptr<raftRpcSpace::RequestVoteArguments> args,
                     std::shared_ptr<raftRpcSpace::RequestVoteResults> reply, std::shared_ptr<int> votedNum) {
     auto start = now();
-    DPrintf("[func-sendRequestVote rf{%d}] 向server{%d} 发送 RequestVote 开始", m_me, m_currentTerm, getLastLogIndex());
+    DPrintf("[func-sendRequestVote rf{%d}] 向server{%d} 发送 RequestVote 开始", m_me, server);
     //这个ok是网络是否正常通信的ok，而不是requestVote rpc是否投票的rpc
     // ok := rf.peers[server].Call("Raft.RequestVote", args, reply)
     bool ok = m_peers[server]->RequestVote(args.get(), reply.get());
-    DPrintf("[func-sendRequestVote rf{%d}] 向server{%d} 发送 RequestVote 完毕，耗时:{%d} ms", m_me, m_currentTerm, getLastLogIndex(), now() - start);
+    DPrintf("[func-sendRequestVote rf{%d}] 向server{%d} 发送 RequestVote 完毕，耗时:{%d} ms", m_me, server, now() - start);
 
     if (!ok) {
         return ok;  //RPC通信失败就立即返回，避免资源浪费
@@ -834,10 +834,10 @@ void Raft::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me, std::sh
     
     m_mtx.unlock();
     // 启动协程
-    //m_ioManager = std::make_unique<monsoon::IOManager>(1)(FIBER_THREAD_NUM, FIBER_USE_CALLER_THREAD);
+    m_ioManager = std::make_unique<monsoon::IOManager>(FIBER_THREAD_NUM, FIBER_USE_CALLER_THREAD);
 
-    // m_ioManager->scheduler([this]() -> void { this->leaderHearBeatTicker(); });
-    // m_ioManager->scheduler([this]() -> void { this->electionTimeOutTicker(); });
+    m_ioManager->scheduler([this]() -> void { this->leaderHeartBeatTicker(); });
+    m_ioManager->scheduler([this]() -> void { this->electionTimeOutTicker(); });
 
     std::thread t(&Raft::applierTicker, this);
     t.detach();

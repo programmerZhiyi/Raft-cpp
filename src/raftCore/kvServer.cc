@@ -36,7 +36,7 @@ KvServer::KvServer(int me, int maxraftstate, short port) : m_skipList(6) {
     ZkClient zkCli;
     zkCli.Start();
     for (int i = 0; i < INT_MAX - 1; ++i) {
-        std::string node = "/Raft/node" + std::to_string(i);
+        std::string node = "/Raftnode" + std::to_string(i);
         if (!zkCli.Exists(node.c_str())) {
             break;
         }

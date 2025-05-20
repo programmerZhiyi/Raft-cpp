@@ -1,5 +1,4 @@
 #include "zookeeperutil.h"
-#include "mprpcapplication.h"
 #include <semaphore.h>
 #include <iostream>
 #include "mprpclogger.h"
@@ -25,8 +24,8 @@ ZkClient::~ZkClient() {
 
 // 连接zkserver
 void ZkClient::Start() {
-    std::string host = MprpcApplication::GetInstance().GetConfig().Load("zookeeperip");
-    std::string port = MprpcApplication::GetInstance().GetConfig().Load("zookeeperport");
+    std::string host = "127.0.0.1";
+    std::string port = "2181";
     std::string connstr = host + ":" + port;
 
     /*

@@ -16,7 +16,7 @@ private:
     void PutAppend(std::string key, std::string value, std::string op);
 public:
     //对外暴露的三个功能和初始化
-    void Init(std::string configFileName);
+    void Init();
     std::string Get(std::string key);
 
     void Put(std::string key, std::string value);
