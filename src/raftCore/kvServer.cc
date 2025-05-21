@@ -212,6 +212,25 @@ void KvServer::GetCommandFromRaft(ApplyMsg message) {
     if (message.CommandIndex <= m_lastSnapShotRaftLogIndex) {
         return;
     }
+
+    if (!ifRequestDuplicate(op.ClientId, op.RequestId)) {
+        // execute command
+        if (op.Operation == "Put") {
+            ExecutePutOpOnKVDB(op);
+        }
+        if (op.Operation == "Append") {
+            ExecuteAppendOpOnKVDB(op);
+        }
+        //  kv.lastRequestId[op.ClientId] = op.RequestId  在Executexxx函数里面更新的
+    }
+    //到这里kvDB已经制作了快照
+    if (m_maxRaftState != -1) {
+        IfNeedToSendSnapShotCommand(message.CommandIndex, 9);
+        //如果raft的log太大（大于指定的比例）就把制作快照
+    }
+
+    // Send message to the chan of op.ClientId
+    SendMessageToWaitChan(op, message.CommandIndex);
 }
 
 // 检查请求是否重复

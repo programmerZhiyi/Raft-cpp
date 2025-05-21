@@ -27,16 +27,15 @@ void Clerk::PutAppend(std::string key, std::string value, std::string op) {
         // }
         // return;
         if (!ok || reply.err() == ErrWrongLeader) {
-            DPrintf("【Clerk::PutAppend】原以为的leader：{%d}请求失败，向新leader{%d}重试  ，操作：{%s}", server, server + 1, op.c_str());
+            DPrintf("【Clerk::PutAppend】原以为的leader：{%d}请求失败，向新leader{%d}重试  ，操作：{%s}", server, (server + 1) % m_servers.size(), op.c_str());
             if (!ok) {
                 DPrintf("重试原因 ，rpc失败 ，");
                 //break;
             }
             if (reply.err() == ErrWrongLeader) {
                 DPrintf("重试原因：非leader");
-                server = (server + 1) % m_servers.size();  // try the next server
             }
-            //server = (server + 1) % m_servers.size();  // try the next server
+            server = (server + 1) % m_servers.size();  // try the next server
             continue;
         }
         if (reply.err() == OK) {

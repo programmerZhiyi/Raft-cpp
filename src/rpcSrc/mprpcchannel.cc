@@ -70,17 +70,19 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
     send_rpc_str += rpc_header_str; // header
     
 
+    // {
+    //     // 创建一个StringOutputStream用于写入send_rpc_str
+    //     google::protobuf::io::StringOutputStream string_output(&send_rpc_str);
+    //     google::protobuf::io::CodedOutputStream coded_output(&string_output);
+
+    //     // 先写入header的长度（变长编码）
+    //     coded_output.WriteVarint32(static_cast<uint32_t>(rpc_header_str.size()));
+
+    //     // 不需要手动写入header_size，因为上面的WriteVarint32已经包含了header的长度信息
+    //     // 然后写入rpc_header本身
+    //     coded_output.WriteString(rpc_header_str);
+    // }
     
-    // 创建一个StringOutputStream用于写入send_rpc_str
-    // google::protobuf::io::StringOutputStream string_output(&send_rpc_str);
-    // google::protobuf::io::CodedOutputStream coded_output(&string_output);
-
-    // // 先写入header的长度（变长编码）
-    // coded_output.WriteVarint32(static_cast<uint32_t>(rpc_header_str.size()));
-
-    // // 不需要手动写入header_size，因为上面的WriteVarint32已经包含了header的长度信息
-    // // 然后写入rpc_header本身
-    // coded_output.WriteString(rpc_header_str);
     send_rpc_str += args_str; // args
 
     // 发送rpc请求
@@ -114,21 +116,20 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
     //std::string response_str(recv_buf, 0, recv_size); // bug出现问题，recv_buf中遇到了\0，导致字符串截断
     //if (!response->ParseFromString(response_str)) {
     if (!response->ParseFromArray(recv_buf, recv_size)) {
-        close(m_clientfd);
+        // close(m_clientfd);
         char errstr[2048] = {0};
         sprintf(errstr, "parse response error! errno:%s", recv_buf);
         controller->SetFailed(errstr);
         return;
     }
 
-    close(m_clientfd);
+    //close(m_clientfd);
 }
 
-MprpcChannel::MprpcChannel(std::string ip, short port, bool connectNow) : ip(ip), port(port) {
+MprpcChannel::MprpcChannel(std::string ip, short port, bool connectNow) : ip(ip), port(port), m_clientfd(-1) {
     if (!connectNow) {
         return;
     }
-    m_clientfd = -1;
     // 连接远端rpc服务节点
     std::string errMsg;
     auto rt = newConnect(ip.c_str(), port, &errMsg);
