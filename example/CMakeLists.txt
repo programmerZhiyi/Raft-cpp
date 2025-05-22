@@ -1,6 +1,6 @@
 set(SRC_LIST raftKvDB.cc)
 add_executable(raftCoreRun ${SRC_LIST})
-target_link_libraries(raftCoreRun skip_list_on_raft rpc_lib protobuf muduo_net muduo_base pthread )
+target_link_libraries(raftCoreRun skip_list_on_raft rpc_lib protobuf muduo_net muduo_base pthread boost_serialization)
 
 set(SRC_LIST2 caller.cc)
 add_executable(callerMain ${src_raftClerk} ${SRC_LIST2}  ${src_common})

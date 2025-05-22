@@ -27,7 +27,7 @@ add_subdirectory(src)
 add_subdirectory(example)
 
 add_library(skip_list_on_raft STATIC  ${src_rpcsrc} ${src_raftCore} ${src_rpcservice})
-target_link_libraries(skip_list_on_raft muduo_net muduo_base pthread dl)
+target_link_libraries(skip_list_on_raft muduo_net muduo_base pthread)
 
 # add_custom_target(format
 #         COMMAND bash ${PROJECT_SOURCE_DIR}/format.sh
