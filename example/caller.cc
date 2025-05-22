@@ -6,7 +6,7 @@ int main() {
     Clerk client;
     client.Init();
     auto start = now();
-    int count = 50;
+    int count = 500;
     int tmp = count;
     while (tmp--) {
         client.Put("x", std::to_string(tmp));

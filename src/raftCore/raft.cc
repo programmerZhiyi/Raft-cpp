@@ -207,48 +207,22 @@ void Raft::doHeartBeat() {
 }
 void Raft::electionTimeOutTicker() {
     while (true) {
-        /**
-         * 如果不睡眠，那么对于leader，这个函数会一直空转，浪费cpu。且加入协程之后，空转会导致其他协程无法运行，对于时间敏感的AE，会导致心跳无法正常发送导致异常
-         */
-        while (m_status == Leader) {
-            usleep(HeartBeatTimeout);  //定时时间没有严谨设置，因为HeartBeatTimeout比选举超时一般小一个数量级，因此就设置为HeartBeatTimeout了
-        }
-        std::chrono::duration<signed long int, std::ratio<1, 1000000000>> suitableSleepTime{}; // 初始化了一个纳秒级别的时间间隔对象。
-        std::chrono::system_clock::time_point wakeTime{}; // 记录时间节点
-        {
-            m_mtx.lock();
-            wakeTime = now();
-            suitableSleepTime = getRandomizedElectionTimeout() + m_lastResetElectionTime - wakeTime;
-            m_mtx.unlock();
+        m_mtx.lock();
+        auto nowTime = now();
+        auto suitableSleepTime = getRandomizedElectionTimeout() + m_lastResetElectionTime - nowTime;
+        m_mtx.unlock();
+        if (suitableSleepTime.count() > 1) {
+            std::this_thread::sleep_for(suitableSleepTime);
         }
 
-        if (std::chrono::duration<double, std::milli>(suitableSleepTime).count() > 1) {
-            // 获取当前时间点
-            auto start = std::chrono::steady_clock::now();
-            // 因为没有超过睡眠时间继续睡眠
-            usleep(std::chrono::duration_cast<std::chrono::microseconds>(suitableSleepTime).count());
-
-            // 获取函数运行结束后的时间点
-            auto end = std::chrono::steady_clock::now();
-
-            // 计算时间差并输出结果（单位为毫秒）
-            std::chrono::duration<double, std::milli> duration = end - start;
-
-            // 使用ANSI控制序列将输出颜色修改为紫色
-            std::cout << "\033[1;35m electionTimeOutTicker();函数设置睡眠时间为: "
-                        << std::chrono::duration_cast<std::chrono::milliseconds>(suitableSleepTime).count() << " 毫秒\033[0m"
-                        << std::endl;
-            std::cout << "\033[1;35m electionTimeOutTicker();函数实际睡眠时间为: " << duration.count() << " 毫秒\033[0m"
-                        << std::endl;
-        }
-
-        if (std::chrono::duration<double, std::milli>(m_lastResetElectionTime - wakeTime).count() > 0) {
+        if ((m_lastResetElectionTime - nowTime).count() > 0) {
             //说明睡眠的这段时间有重置定时器，那么就没有超时，再次睡眠
             continue;
         }
         doElection();
     }
 }
+
 std::vector<ApplyMsg> Raft::getApplyLogs() {
     std::vector<ApplyMsg> applyMsgs;
     myAssert(m_commitIndex <= getLastLogIndex(), format("[func-getApplyLogs-rf{%d}] commitIndex{%d} >getLastLogIndex{%d}",
@@ -342,45 +316,25 @@ void Raft::InstallSnapshot(const raftRpcSpace::InstallSnapshotArguments* request
 }
 void Raft::leaderHeartBeatTicker() {
     while (true) {
-        //  避免不是领导者情况，cpu空转，浪费资源
-        while (m_status != Leader) {
-            usleep(1000 * HeartBeatTimeout);
+        //不是leader的话就没有必要进行后续操作，况且还要拿锁，很影响性能，目前是睡眠，后面再优化优化
+        while ( m_status != Leader) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(HeartBeatTimeout));
         }
-        static std::atomic<int32_t> atomicCount = 0; // 线程安全的原子计数器
-        // 表示当前线程需要睡眠的时间，计算方式基于心跳超时时间（HeartBeatTimeout）和上次重置心跳时间（m_lastResetHearBeatTime）
-        // 目的：用于动态调整睡眠时间，避免线程频繁检查状态导致cpu空转
-        std::chrono::duration<signed long int, std::ratio<1, 1000000000>> suitableSleepTime{};
-        std::chrono::system_clock::time_point wakeTime{};
-        {
-            std::lock_guard<std::mutex> lock(m_mtx);
-            wakeTime = now();
-            suitableSleepTime = std::chrono::milliseconds(HeartBeatTimeout) + m_lastResetHeartBeatTime - wakeTime;
-        }
+        auto wakaTime = now();
+        m_mtx.lock();
+
+        auto suitableSleepTime = std::chrono::milliseconds(HeartBeatTimeout) + m_lastResetHeartBeatTime - wakaTime;
+        m_mtx.unlock();
+
 
         if (std::chrono::duration<double, std::milli>(suitableSleepTime).count() > 1) {
-            std::cout << atomicCount << "\033[1;35m leaderHearBeatTicker();函数设置睡眠时间为: "
-                        << std::chrono::duration_cast<std::chrono::milliseconds>(suitableSleepTime).count() << " 毫秒\033[0m"
-                        << std::endl;
-            // 获取当前时间点
-            auto start = std::chrono::steady_clock::now();
-
-            usleep(std::chrono::duration_cast<std::chrono::microseconds>(suitableSleepTime).count());
-
-            // 获取函数运行结束后的时间点
-            auto end = std::chrono::steady_clock::now();
-
-            // 计算时间差并输出结果（单位为毫秒）
-            std::chrono::duration<double, std::milli> duration = end - start;
-
-            // 使用ANSI控制序列将输出颜色修改为紫色
-            std::cout << atomicCount << "\033[1;35m leaderHearBeatTicker();函数实际睡眠时间为: " << duration.count()
-                        << " 毫秒\033[0m" << std::endl;
-            ++atomicCount;
+        std::this_thread::sleep_for(suitableSleepTime);
         }
 
-        if (std::chrono::duration<double, std::milli>(m_lastResetHeartBeatTime - wakeTime).count() > 0) {
-            //睡眠的这段时间有重置定时器，没有超时，再次睡眠
-            continue;
+
+        if (std::chrono::duration<double, std::milli>(m_lastResetHeartBeatTime - wakaTime).count() > 0) {
+        //睡眠的这段时间有重置定时器，没有超时，再次睡眠
+        continue;
         }
         doHeartBeat();
     }
@@ -833,11 +787,12 @@ void Raft::init(std::vector<std::shared_ptr<RaftRpcUtil>> peers, int me, std::sh
           m_currentTerm, m_lastSnapshotIncludeIndex, m_lastSnapshotIncludeTerm);
     
     m_mtx.unlock();
-    // 启动协程
-    m_ioManager = std::make_unique<monsoon::IOManager>(FIBER_THREAD_NUM, FIBER_USE_CALLER_THREAD);
+    // 启动三个线程
+    std::thread t1(&Raft::leaderHeartBeatTicker, this);
+    t1.detach();
 
-    m_ioManager->scheduler([this]() -> void { this->leaderHeartBeatTicker(); });
-    m_ioManager->scheduler([this]() -> void { this->electionTimeOutTicker(); });
+    std::thread t2(&Raft::electionTimeOutTicker, this);
+    t2.detach();
 
     std::thread t(&Raft::applierTicker, this);
     t.detach();
