@@ -26,7 +26,7 @@
 
 ```bash
 # 克隆项目
-git clone https://github.com/yourusername/Raft-cpp.git
+git clone https://github.com/programmerZhiyi/Raft-cpp.git
 cd Raft-cpp
 
 # 运行构建脚本
