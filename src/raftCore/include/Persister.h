@@ -17,10 +17,14 @@ private:
     void clearSnapshot();
     void clearRaftStateAndSnapshot();
 public:
+    // 保存Raft状态和快照
     void Save(std::string raftstate, std::string snapshot);
+    // 读取快照
     std::string ReadSnapshot();
+    // 仅保存Raft状态
     void SaveRaftState(const std::string &data);
     long long RaftStateSize();
+    // 读取Raft状态
     std::string ReadRaftState();
     explicit Persister(int me);
     ~Persister();

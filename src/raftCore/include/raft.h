@@ -24,7 +24,7 @@ class Raft : public raftRpcSpace::raftRpc {
 private:
     std::mutex m_mtx;
     std::vector<std::shared_ptr<RaftRpcUtil>> m_peers;
-    std::shared_ptr<Persister> m_persister;
+    std::shared_ptr<Persister> m_persister; // 持久化管理器，负责保存快照
     int m_me; // 当前节点的ID
     int m_currentTerm; // 当前任期
     int m_votedFor;

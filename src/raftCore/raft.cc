@@ -713,6 +713,7 @@ void Raft::Snapshot(int index, std::string snapshot) {
     std::lock_guard<std::mutex> lg(m_mtx);
 
     if (m_lastSnapshotIncludeIndex >= index || index > m_commitIndex) {
+        // 如果已有快照更新或索引超出提交范围，拒绝处理
         DPrintf(
             "[func-Snapshot-rf{%d}] rejects replacing log with snapshotIndex %d as current snapshotIndex %d is larger or "
             "smaller ",
@@ -728,9 +729,11 @@ void Raft::Snapshot(int index, std::string snapshot) {
     for (int i = index + 1; i <= getLastLogIndex(); i++) {
         trunckedLogs.push_back(m_logs[getSlicesIndexFromLogIndex(i)]);
     }
+    // 更新快照信息
     m_lastSnapshotIncludeIndex = newLastSnapshotIncludeIndex;
     m_lastSnapshotIncludeTerm = newLastSnapshotIncludeTerm;
-    m_logs = trunckedLogs;
+    m_logs = trunckedLogs;  // 用裁剪后的日志替换原日志
+    // 更新提交索引和应用索引
     m_commitIndex = std::max(m_commitIndex, index);
     m_lastApplied = std::max(m_lastApplied, index);
 
@@ -738,6 +741,7 @@ void Raft::Snapshot(int index, std::string snapshot) {
 
     DPrintf("[SnapShot]Server %d snapshot snapshot index {%d}, term {%d}, loglen {%d}", m_me, index,
             m_lastSnapshotIncludeTerm, m_logs.size());
+    // 验证日志长度，确保没有丢失日志
     myAssert(m_logs.size() + m_lastSnapshotIncludeIndex == lastLogIndex,
             format("len(rf.logs){%d} + rf.lastSnapshotIncludeIndex{%d} != lastLogjInde{%d}", m_logs.size(),
                     m_lastSnapshotIncludeIndex, lastLogIndex));

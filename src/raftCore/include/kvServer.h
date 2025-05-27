@@ -55,7 +55,7 @@ public:
     bool SendMessageToWaitChan(const Op &op, int raftIndex);
 
     // 检查是否需要制作快照，需要的话就向raft之下制作快照
-    void IfNeedToSendSnapShotCommand(int raftIndex, int proportion);
+    void IfNeedToSendSnapShotCommand(int raftIndex);
 
     // raft节点向kvServer发送快照
     void GetSnapShotFromRaft(ApplyMsg message);

@@ -72,7 +72,7 @@ KvServer::KvServer(int me, int maxraftstate, short port) : m_skipList(6) {
     if (!snapshot.empty()) {
         ReadSnapShotToInstall(snapshot);
     }
-    std::thread t2(&KvServer::ReadRaftApplyCommandLoop, this);  //马上向其他节点宣告自己就是leader
+    std::thread t2(&KvServer::ReadRaftApplyCommandLoop, this);
     t2.join();  //由于ReadRaftApplyCommandLoop一直不会结束，达到一直卡在这的目的
 }
 
@@ -225,8 +225,8 @@ void KvServer::GetCommandFromRaft(ApplyMsg message) {
     }
     //到这里kvDB已经制作了快照
     if (m_maxRaftState != -1) {
-        IfNeedToSendSnapShotCommand(message.CommandIndex, 9);
-        //如果raft的log太大（大于指定的比例）就把制作快照
+        IfNeedToSendSnapShotCommand(message.CommandIndex);
+        //如果raft的log太大，就制作快照
     }
 
     // Send message to the chan of op.ClientId
@@ -354,7 +354,7 @@ bool KvServer::SendMessageToWaitChan(const Op &op, int raftIndex) {
 }
 
 // 检查是否需要制作快照，需要的话就向raft之下制作快照
-void KvServer::IfNeedToSendSnapShotCommand(int raftIndex, int proportion) {
+void KvServer::IfNeedToSendSnapShotCommand(int raftIndex) {
     if (m_raftNode->GetRaftStateSize() > m_maxRaftState / 10.0) {
         auto snapshot = MakeSnapShot();
         m_raftNode->Snapshot(raftIndex, snapshot);
@@ -390,10 +390,10 @@ void KvServer::Get(google::protobuf::RpcController *controller, const ::raftKVRp
 }
 
 std::string KvServer::getSnapshotData() {
-    m_serializedKVData = m_skipList.dump_file();
+    m_serializedKVData = m_skipList.dump_file(); // 将跳表数据序列化
     std::stringstream ss;
     boost::archive::text_oarchive oa(ss);
-    oa << *this;
+    oa << *this;  // 序列化KvServer对象
     m_serializedKVData.clear();
     return ss.str();
 }
